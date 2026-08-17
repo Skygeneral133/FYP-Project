@@ -4,13 +4,9 @@
 <html>
 
 <head>
-
     <meta charset="UTF-8">
-
     <title>Arduino Load Cell BLE Test</title>
-
     <style>
-
         body {
             font-family: Arial, sans-serif;
             text-align: center;
@@ -43,16 +39,12 @@
             margin-top: 30px;
             font-family: monospace;
         }
-
     </style>
-
 </head>
 
 
 <body>
-
     <h1>Arduino Load Cell BLE Test</h1>
-
     <div id="status">
         Status: Disconnected
     </div>
@@ -71,167 +63,65 @@
 
 
 <script>
-
-    // ==========================================
     // BLE UUIDs
-    // ==========================================
+    const SERVICE_UUID = "19b10000-e8f2-537e-4f6c-d104768a1214";
+    const CHARACTERISTIC_UUID = "19b10001-e8f2-537e-4f6c-d104768a1214";
 
-    const SERVICE_UUID =
-        "19b10000-e8f2-537e-4f6c-d104768a1214";
-
-    const CHARACTERISTIC_UUID =
-        "19b10001-e8f2-537e-4f6c-d104768a1214";
-
-
-    // ==========================================
     // Variables
-    // ==========================================
-
     let device = null;
     let characteristic = null;
 
-
-    // ==========================================
     // Connect to Arduino
-    // ==========================================
-
     async function connectBLE() {
-
         try {
+            document.getElementById("status").innerText = "Status: Searching for Arduino...";
 
-            document.getElementById("status").innerText =
-                "Status: Searching for Arduino...";
-
-
-            // --------------------------------------
             // Request BLE device
-            // --------------------------------------
-
             device = await navigator.bluetooth.requestDevice({
-
-                filters: [
-                    {
-                        name: "LoadCellArduino"
-                    }
-                ],
-
-                optionalServices: [
-                    SERVICE_UUID
-                ]
-
+                filters: [{name: "LoadCellArduino"}],
+                optionalServices: [SERVICE_UUID]
             });
-
 
             console.log("Device found:", device.name);
 
-
-            // --------------------------------------
             // Connect
-            // --------------------------------------
+            document.getElementById("status").innerText = "Status: Connecting...";
+            const server = await device.gatt.connect();
 
-            document.getElementById("status").innerText =
-                "Status: Connecting...";
-
-
-            const server =
-                await device.gatt.connect();
-
-
-            // --------------------------------------
             // Get service
-            // --------------------------------------
+            const service = await server.getPrimaryService(SERVICE_UUID);
 
-            const service =
-                await server.getPrimaryService(
-                    SERVICE_UUID
-                );
-
-
-            // --------------------------------------
             // Get characteristic
-            // --------------------------------------
+            characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
 
-            characteristic =
-                await service.getCharacteristic(
-                    CHARACTERISTIC_UUID
-                );
-
-
-            // --------------------------------------
             // Listen for notifications
-            // --------------------------------------
-
             await characteristic.startNotifications();
-
-
-            characteristic.addEventListener(
-                "characteristicvaluechanged",
-                handleWeight
-            );
-
-
-            document.getElementById("status").innerText =
-                "Status: Connected";
-
-
+            characteristic.addEventListener("characteristicvaluechanged", handleWeight);
+            document.getElementById("status").innerText = "Status: Connected";
             console.log("BLE connected!");
-
         }
 
         catch (error) {
-
             console.error(error);
-
-            document.getElementById("status").innerText =
-                "Status: Error - " + error;
-
+            document.getElementById("status").innerText = "Status: Error - " + error;
         }
-
     }
 
-
-    // ==========================================
-    // Receive weight
-    // ==========================================
-
+    // Receive weight data from Arduino
     function handleWeight(event) {
-
-        const value =
-            new TextDecoder().decode(
-                event.target.value
-            );
-
-
-        const weight =
-            parseFloat(value);
-
-
+        const value = new TextDecoder().decode(event.target.value);
+        const weight = parseFloat(value);
         console.log("Received:", value);
 
-
-        // --------------------------------------
         // Update weight
-        // --------------------------------------
-
         if (!isNaN(weight)) {
-
-            document.getElementById("weight").innerText =
-                weight.toFixed(2) + " g";
-
+            document.getElementById("weight").innerText = weight.toFixed(2) + " g";
         }
 
-
-        // --------------------------------------
         // Raw data
-        // --------------------------------------
-
-        document.getElementById("rawData").innerText =
-            "BLE Data: " + value;
-
+        document.getElementById("rawData").innerText = "BLE Data: " + value;
     }
 
 </script>
-
 </body>
-
 </html>
