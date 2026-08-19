@@ -29,6 +29,11 @@ public class BluetoothInterfacer : MonoBehaviour
 
     void Start()
     {
+        Invoke(nameof(InitializeBLE), 5f);
+    }
+
+    private void InitializeBLE()
+    {
         BluetoothLEHardwareInterface.Initialize(true, false, OnInitializeSuccess, OnInitializeError);
     }
 
@@ -154,13 +159,7 @@ public class BluetoothInterfacer : MonoBehaviour
         {
             Debug.LogWarning("Failed to parse weight string: " + weightStr);
         }
-
-        // Assumes the Arduino sends the weight as a raw 4-byte IEEE-754 float
-        // (e.g. via memcpy of a float into the characteristic buffer).
-        // If your sketch instead sends the weight as ASCII text, use
-        // System.Text.Encoding.UTF8.GetString(bytes) and float.Parse() instead.
-        CurrentWeight = BitConverter.ToSingle(bytes, 0);
-        Debug.Log("Weight received as shitty small number: " + CurrentWeight);
+        
     }
 
     // ---------- Cleanup ----------
@@ -193,6 +192,17 @@ public class BluetoothInterfacer : MonoBehaviour
         if (_isConnected)
         {
             BluetoothLEHardwareInterface.DisconnectPeripheral(_deviceAddress, OnDisconnected);
+        }
+        BluetoothLEHardwareInterface.DeInitialize(OnDeInitialized);
+    }
+    
+    public void disConnect()
+    {
+        if (_isConnected)
+        {
+            Debug.Log("DIsconnecting...");
+            BluetoothLEHardwareInterface.DisconnectPeripheral(_deviceAddress, OnDisconnected);
+            
         }
         BluetoothLEHardwareInterface.DeInitialize(OnDeInitialized);
     }

@@ -18,17 +18,20 @@ namespace DefaultNamespace
         void Update()
         {
             givenVolume = BluetoothInterface.CurrentWeight;
-            if (givenVolume>0) {
-                
-                float actualScale = givenVolume*_hundredMil / 100;
+            if (givenVolume > 0)
+            {
+                float actualScale = givenVolume * _hundredMil / 100;
 
-                Vector3 currentScale = gameObject.transform.localScale;
+                // Scale on Y as before
+                Vector3 currentScale = transform.localScale;
                 currentScale.y = actualScale;
-                gameObject.transform.localScale = currentScale;
+                transform.localScale = currentScale;
 
-                float halfHeight = 1f;
+                // Default Unity cylinder mesh half-height is 1 (in unscaled local units),
+                // so after scaling, the cylinder's actual half-height is actualScale * 1.
+                // Positioning the pivot at that offset above the anchor keeps the base pinned at y=0.
                 Vector3 pos = transform.localPosition;
-                pos.y = actualScale * halfHeight;
+                pos.y = actualScale * 1f; // 1f = default cylinder mesh half-height
                 transform.localPosition = pos;
             }
         }
