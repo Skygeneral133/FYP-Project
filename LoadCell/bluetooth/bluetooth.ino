@@ -1,7 +1,7 @@
 #include <ArduinoBLE.h>
 
 // Define HX710 pins
-#define HX710_DOUT 3
+#define HX710_DOUT 4
 #define HX710_SCLK 2
 
 // Calibration factor 
@@ -117,10 +117,17 @@ void loop() {
 // HX710 READ FUNCTION
 long readHX710() {
   // Wait for HX710 to be ready
+  unsigned long startTime = micros();
+
   while (digitalRead(HX710_DOUT) == HIGH) {
+    if (micros() - startTime > 1000000) {  // 1 second timeout
+      Serial.println("ERROR: HX710 DOUT stayed HIGH");
+      return 0;
+    }
     delayMicroseconds(10);
   }
 
+  
   long value = 0;
 
   // Read 24 bits of data from HX710
