@@ -1,0 +1,715 @@
+<!-- Run with:
+     python -m http.server 8000
+
+     Then open:
+     http://localhost:8000
+-->
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>Arduino Load Cell BLE Monitor</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #f2f2f2;
+            margin: 0;
+            padding: 40px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        #status {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px;
+        }
+
+        button {
+            padding: 12px 25px;
+            margin: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        #connectButton {
+            background: #333;
+            color: white;
+        }
+
+        #disconnectButton {
+            background: #777;
+            color: white;
+        }
+
+        #tareButton {
+            background: #d9534f;
+            color: white;
+            font-weight: bold;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            width: 280px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .label {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .value {
+            font-size: 45px;
+            font-weight: bold;
+        }
+
+        .unit {
+            font-size: 18px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        #rawData {
+            margin-top: 40px;
+            background: #222;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 16px;
+            display: inline-block;
+            min-width: 350px;
+            text-align: left;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+    <h1>Arduino Load Cell Monitor</h1>
+
+
+    <div id="status">
+        Status: Disconnected
+    </div>
+
+
+    <!-- ============================= -->
+    <!-- CONNECTION BUTTONS -->
+    <!-- ============================= -->
+
+    <button id="connectButton">
+        Connect to Arduino
+    </button>
+
+
+    <button id="disconnectButton" disabled>
+        Disconnect
+    </button>
+
+
+    <!-- ============================= -->
+    <!-- TARE BUTTON -->
+    <!-- ============================= -->
+
+    <br>
+
+    <button id="tareButton" disabled>
+        Tare / Reset Weight
+    </button>
+
+
+    <div class="container">
+
+
+        <!-- ============================= -->
+        <!-- WEIGHT -->
+        <!-- ============================= -->
+
+        <div class="card">
+
+            <div class="label">
+                Weight
+            </div>
+
+            <div class="value" id="weight">
+                0.00
+            </div>
+
+            <div class="unit">
+                grams
+            </div>
+
+        </div>
+
+
+        <!-- ============================= -->
+        <!-- POURING RATE -->
+        <!-- ============================= -->
+
+        <div class="card">
+
+            <div class="label">
+                Pouring Rate
+            </div>
+
+            <div class="value" id="pouringRate">
+                0.00
+            </div>
+
+            <div class="unit">
+                grams / second
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <div id="rawData">
+        BLE Data: Waiting for data...
+    </div>
+
+
+<script>
+
+
+// =====================================================
+// BLE UUIDs
+// =====================================================
+
+// Main load-cell service
+
+const SERVICE_UUID =
+    "19b10000-e8f2-537e-4f6c-d104768a1214";
+
+
+// Measurement characteristic
+// Arduino → HTML
+
+const CHARACTERISTIC_UUID =
+    "19b10001-e8f2-537e-4f6c-d104768a1214";
+
+
+// Tare characteristic
+// HTML → Arduino
+
+const TARE_CHARACTERISTIC_UUID =
+    "19b10002-e8f2-537e-4f6c-d104768a1214";
+
+
+// =====================================================
+// BLE variables
+// =====================================================
+
+let device = null;
+
+let characteristic = null;
+
+let tareCharacteristic = null;
+
+
+// =====================================================
+// HTML elements
+// =====================================================
+
+const status =
+    document.getElementById("status");
+
+const weightDisplay =
+    document.getElementById("weight");
+
+const pouringRateDisplay =
+    document.getElementById("pouringRate");
+
+const rawDataDisplay =
+    document.getElementById("rawData");
+
+const connectButton =
+    document.getElementById("connectButton");
+
+const disconnectButton =
+    document.getElementById("disconnectButton");
+
+const tareButton =
+    document.getElementById("tareButton");
+
+
+// =====================================================
+// CONNECT BUTTON
+// =====================================================
+
+connectButton.addEventListener(
+    "click",
+    connectBLE
+);
+
+
+// =====================================================
+// CONNECT TO ARDUINO
+// =====================================================
+
+async function connectBLE() {
+
+    try {
+
+        status.textContent =
+            "Status: Searching for Arduino...";
+
+
+        // ---------------------------------------------
+        // Find Arduino
+        // ---------------------------------------------
+
+        device =
+            await navigator.bluetooth.requestDevice({
+
+                filters: [
+                    {
+                        name: "LoadCellArduino"
+                    }
+                ],
+
+                optionalServices: [
+                    SERVICE_UUID
+                ]
+
+            });
+
+
+        console.log(
+            "Device found:",
+            device.name
+        );
+
+
+        // ---------------------------------------------
+        // Detect disconnect
+        // ---------------------------------------------
+
+        device.addEventListener(
+            "gattserverdisconnected",
+            handleDisconnect
+        );
+
+
+        // ---------------------------------------------
+        // Connect
+        // ---------------------------------------------
+
+        status.textContent =
+            "Status: Connecting...";
+
+
+        const server =
+            await device.gatt.connect();
+
+
+        // ---------------------------------------------
+        // Get service
+        // ---------------------------------------------
+
+        const service =
+            await server.getPrimaryService(
+                SERVICE_UUID
+            );
+
+
+        // ---------------------------------------------
+        // Get measurement characteristic
+        // ---------------------------------------------
+
+        characteristic =
+            await service.getCharacteristic(
+                CHARACTERISTIC_UUID
+            );
+
+
+        // ---------------------------------------------
+        // Get TARE characteristic
+        // ---------------------------------------------
+
+        tareCharacteristic =
+            await service.getCharacteristic(
+                TARE_CHARACTERISTIC_UUID
+            );
+
+
+        console.log(
+            "Measurement characteristic found."
+        );
+
+        console.log(
+            "Tare characteristic found."
+        );
+
+
+        // ---------------------------------------------
+        // Start notifications
+        // ---------------------------------------------
+
+        await characteristic.startNotifications();
+
+
+        characteristic.addEventListener(
+            "characteristicvaluechanged",
+            handleData
+        );
+
+
+        // ---------------------------------------------
+        // Update status
+        // ---------------------------------------------
+
+        status.textContent =
+            "Status: Connected to " +
+            device.name;
+
+
+        connectButton.disabled =
+            true;
+
+        disconnectButton.disabled =
+            false;
+
+        tareButton.disabled =
+            false;
+
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        status.textContent =
+            "Status: Error - " +
+            error.message;
+
+    }
+
+}
+
+
+// =====================================================
+// TARE BUTTON
+// =====================================================
+
+tareButton.addEventListener(
+    "click",
+    tareLoadCell
+);
+
+
+// =====================================================
+// TARE LOAD CELL
+// =====================================================
+
+async function tareLoadCell() {
+
+    if (!tareCharacteristic) {
+
+        alert(
+            "Load cell is not connected."
+        );
+
+        return;
+    }
+
+
+    try {
+
+        // ---------------------------------------------
+        // Confirm
+        // ---------------------------------------------
+
+        const confirmed =
+            confirm(
+                "Make sure the load cell is at the desired starting weight.\n\n" +
+                "Press OK to tare."
+            );
+
+
+        if (!confirmed) {
+
+            return;
+
+        }
+
+
+        // ---------------------------------------------
+        // Send TARE command
+        // ---------------------------------------------
+
+        const encoder =
+            new TextEncoder();
+
+
+        const command =
+            encoder.encode("TARE");
+
+
+        await tareCharacteristic.writeValue(
+            command
+        );
+
+
+        // ---------------------------------------------
+        // Update display
+        // ---------------------------------------------
+
+        weightDisplay.textContent =
+            "0.00";
+
+        pouringRateDisplay.textContent =
+            "0.00";
+
+
+        rawDataDisplay.textContent =
+            "BLE Data: Tare command sent";
+
+
+        console.log(
+            "TARE command sent."
+        );
+
+
+        status.textContent =
+            "Status: Load cell tared";
+
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        status.textContent =
+            "Status: Tare error - " +
+            error.message;
+
+    }
+
+}
+
+
+// =====================================================
+// RECEIVE LOAD CELL DATA
+// =====================================================
+
+function handleData(event) {
+
+
+    // ---------------------------------------------
+    // Get BLE DataView
+    // ---------------------------------------------
+
+    const dataView =
+        event.target.value;
+
+
+    // ---------------------------------------------
+    // Convert bytes to text
+    // ---------------------------------------------
+
+    const decoder =
+        new TextDecoder("utf-8");
+
+
+    const data =
+        decoder.decode(
+
+            new Uint8Array(
+                dataView.buffer,
+                dataView.byteOffset,
+                dataView.byteLength
+            )
+
+        ).trim();
+
+
+    console.log(
+        "Received:",
+        data
+    );
+
+
+    // ---------------------------------------------
+    // Display raw data
+    // ---------------------------------------------
+
+    rawDataDisplay.textContent =
+        "BLE Data: " + data;
+
+
+    // ---------------------------------------------
+    // Expected:
+    //
+    // weight,pouringRate
+    //
+    // Example:
+    //
+    // 75.43,12.52
+    // ---------------------------------------------
+
+    const values =
+        data.split(",");
+
+
+    if (values.length !== 2) {
+
+        console.warn(
+            "Invalid BLE data:",
+            data
+        );
+
+        return;
+
+    }
+
+
+    // ---------------------------------------------
+    // Convert to numbers
+    // ---------------------------------------------
+
+    const weight =
+        Number(values[0]);
+
+
+    const pouringRate =
+        Number(values[1]);
+
+
+    // ---------------------------------------------
+    // Check numbers
+    // ---------------------------------------------
+
+    if (
+        !Number.isFinite(weight) ||
+        !Number.isFinite(pouringRate)
+    ) {
+
+        console.warn(
+            "Invalid numerical data:",
+            values
+        );
+
+        return;
+
+    }
+
+
+    // ---------------------------------------------
+    // Update weight
+    // ---------------------------------------------
+
+    weightDisplay.textContent =
+        weight.toFixed(2);
+
+
+    // ---------------------------------------------
+    // Update pouring rate
+    // ---------------------------------------------
+
+    pouringRateDisplay.textContent =
+        pouringRate.toFixed(2);
+
+}
+
+
+// =====================================================
+// DISCONNECT BUTTON
+// =====================================================
+
+disconnectButton.addEventListener(
+    "click",
+    () => {
+
+        if (
+            device &&
+            device.gatt &&
+            device.gatt.connected
+        ) {
+
+            device.gatt.disconnect();
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// HANDLE DISCONNECT
+// =====================================================
+
+function handleDisconnect() {
+
+    status.textContent =
+        "Status: Disconnected";
+
+
+    connectButton.disabled =
+        false;
+
+
+    disconnectButton.disabled =
+        true;
+
+
+    tareButton.disabled =
+        true;
+
+
+    characteristic =
+        null;
+
+
+    tareCharacteristic =
+        null;
+
+
+    console.log(
+        "Arduino disconnected."
+    );
+
+}
+
+</script>
+
+</body>
+
+</html>

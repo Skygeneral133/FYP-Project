@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>IMU Pouring Monitor</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #f2f2f2;
+            margin: 0;
+            padding: 40px;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        #status {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            margin: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        #connectButton {
+            background: #333;
+            color: white;
+        }
+
+        #disconnectButton {
+            background: #777;
+            color: white;
+        }
+
+        #resetButton {
+            background: #d9534f;
+            color: white;
+            font-weight: bold;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            background: white;
+            width: 280px;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .label {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .value {
+            font-size: 45px;
+            font-weight: bold;
+        }
+
+        .unit {
+            font-size: 18px;
+            color: #666;
+        }
+
+        #rawData {
+            margin-top: 35px;
+            background: #222;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 16px;
+            display: inline-block;
+            min-width: 350px;
+            text-align: left;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+    <h1>IMU Pouring Monitor</h1>
+
+
+    <div id="status">
+        Disconnected
+    </div>
+
+
+    <!-- ================================ -->
+    <!-- CONNECTION BUTTONS -->
+    <!-- ================================ -->
+
+    <button id="connectButton">
+        Connect to Arduino
+    </button>
+
+
+    <button id="disconnectButton" disabled>
+        Disconnect
+    </button>
+
+
+    <!-- ================================ -->
+    <!-- RESET BUTTON -->
+    <!-- ================================ -->
+
+    <br>
+
+    <button id="resetButton" disabled>
+        Reset IMU Angle
+    </button>
+
+
+    <div class="container">
+
+
+        <!-- ================================ -->
+        <!-- Y ANGLE -->
+        <!-- ================================ -->
+
+        <div class="card">
+
+            <div class="label">
+                Y Pouring Angle
+            </div>
+
+            <div class="value" id="angle">
+                0.00
+            </div>
+
+            <div class="unit">
+                degrees
+            </div>
+
+        </div>
+
+
+        <!-- ================================ -->
+        <!-- Y ANGULAR VELOCITY -->
+        <!-- ================================ -->
+
+        <div class="card">
+
+            <div class="label">
+                Y Angular Velocity
+            </div>
+
+            <div class="value" id="angularVelocity">
+                0.00
+            </div>
+
+            <div class="unit">
+                degrees / second
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div id="rawData">
+        Raw BLE data: Waiting...
+    </div>
+
+
+<script>
+
+
+// ======================================================
+// BLE UUIDs
+// ======================================================
+
+
+// IMU service
+
+const SERVICE_UUID =
+    "19b10000-e8f2-537e-4f6c-d104768a1214";
+
+
+// IMU data characteristic
+//
+// Arduino → HTML
+
+const CHARACTERISTIC_UUID =
+    "19b10001-e8f2-537e-4f6c-d104768a1214";
+
+
+// IMU reset characteristic
+//
+// HTML → Arduino
+
+const RESET_CHARACTERISTIC_UUID =
+    "19b10002-e8f2-537e-4f6c-d104768a1214";
+
+
+// ======================================================
+// BLE variables
+// ======================================================
+
+let device = null;
+
+let characteristic = null;
+
+let resetCharacteristic = null;
+
+
+// ======================================================
+// HTML elements
+// ======================================================
+
+const connectButton =
+    document.getElementById("connectButton");
+
+
+const disconnectButton =
+    document.getElementById("disconnectButton");
+
+
+const resetButton =
+    document.getElementById("resetButton");
+
+
+const status =
+    document.getElementById("status");
+
+
+const angleDisplay =
+    document.getElementById("angle");
+
+
+const angularVelocityDisplay =
+    document.getElementById("angularVelocity");
+
+
+const rawDataDisplay =
+    document.getElementById("rawData");
+
+
+// ======================================================
+// CONNECT
+// ======================================================
+
+connectButton.addEventListener(
+    "click",
+    connectBLE
+);
+
+
+// ======================================================
+// CONNECT TO IMU
+// ======================================================
+
+async function connectBLE() {
+
+    try {
+
+        status.textContent =
+            "Searching for IMUArduino...";
+
+
+        // ----------------------------------------------
+        // Request Arduino
+        // ----------------------------------------------
+
+        device =
+            await navigator.bluetooth.requestDevice({
+
+                filters: [
+                    {
+                        name: "IMUArduino"
+                    }
+                ],
+
+                optionalServices: [
+                    SERVICE_UUID
+                ]
+
+            });
+
+
+        console.log(
+            "Selected device:",
+            device.name
+        );
+
+
+        // ----------------------------------------------
+        // Detect disconnect
+        // ----------------------------------------------
+
+        device.addEventListener(
+            "gattserverdisconnected",
+            onDisconnected
+        );
+
+
+        status.textContent =
+            "Connecting...";
+
+
+        // ----------------------------------------------
+        // Connect
+        // ----------------------------------------------
+
+        const server =
+            await device.gatt.connect();
+
+
+        console.log(
+            "GATT connected"
+        );
+
+
+        // ----------------------------------------------
+        // Get service
+        // ----------------------------------------------
+
+        const service =
+            await server.getPrimaryService(
+                SERVICE_UUID
+            );
+
+
+        // ----------------------------------------------
+        // Get data characteristic
+        // ----------------------------------------------
+
+        characteristic =
+            await service.getCharacteristic(
+                CHARACTERISTIC_UUID
+            );
+
+
+        console.log(
+            "Data characteristic found"
+        );
+
+
+        // ----------------------------------------------
+        // Get RESET characteristic
+        // ----------------------------------------------
+
+        resetCharacteristic =
+            await service.getCharacteristic(
+                RESET_CHARACTERISTIC_UUID
+            );
+
+
+        console.log(
+            "Reset characteristic found"
+        );
+
+
+        // ----------------------------------------------
+        // Start notifications
+        // ----------------------------------------------
+
+        await characteristic.startNotifications();
+
+
+        characteristic.addEventListener(
+            "characteristicvaluechanged",
+            handleData
+        );
+
+
+        // ----------------------------------------------
+        // Update UI
+        // ----------------------------------------------
+
+        status.textContent =
+            "Connected to " + device.name;
+
+
+        connectButton.disabled =
+            true;
+
+
+        disconnectButton.disabled =
+            false;
+
+
+        resetButton.disabled =
+            false;
+
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+
+        status.textContent =
+            "Connection failed: " +
+            error.message;
+
+    }
+
+}
+
+
+// ======================================================
+// RESET BUTTON
+// ======================================================
+
+resetButton.addEventListener(
+    "click",
+    resetIMU
+);
+
+
+// ======================================================
+// RESET IMU
+// ======================================================
+
+async function resetIMU() {
+
+    if (!resetCharacteristic) {
+
+        alert(
+            "IMU is not connected."
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        // ----------------------------------------------
+        // Ask user to confirm
+        // ----------------------------------------------
+
+        const confirmed =
+            confirm(
+                "Reset the IMU angle to 0°?\n\n" +
+                "Place the beaker in your desired starting position before pressing OK."
+            );
+
+
+        if (!confirmed) {
+
+            return;
+
+        }
+
+
+        // ----------------------------------------------
+        // Send RESET command
+        // ----------------------------------------------
+
+        const encoder =
+            new TextEncoder();
+
+
+        const command =
+            encoder.encode("RESET");
+
+
+        await resetCharacteristic.writeValue(
+            command
+        );
+
+
+        // ----------------------------------------------
+        // Immediately reset display
+        // ----------------------------------------------
+
+        angleDisplay.textContent =
+            "0.00";
+
+
+        angularVelocityDisplay.textContent =
+            "0.00";
+
+
+        rawDataDisplay.textContent =
+            "Raw BLE data: IMU reset";
+
+
+        status.textContent =
+            "IMU angle reset to 0°";
+
+
+        console.log(
+            "RESET command sent to Arduino."
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+
+        status.textContent =
+            "Reset failed: " +
+            error.message;
+
+    }
+
+}
+
+
+// ======================================================
+// RECEIVE BLE DATA
+// ======================================================
+
+function handleData(event) {
+
+    const dataView =
+        event.target.value;
+
+
+    // ----------------------------------------------
+    // Convert valid bytes to Uint8Array
+    // ----------------------------------------------
+
+    const bytes =
+        new Uint8Array(
+            dataView.buffer,
+            dataView.byteOffset,
+            dataView.byteLength
+        );
+
+
+    // ----------------------------------------------
+    // Decode UTF-8
+    // ----------------------------------------------
+
+    const decoder =
+        new TextDecoder("utf-8");
+
+
+    const rawString =
+        decoder.decode(bytes).trim();
+
+
+    console.log(
+        "BLE RAW:",
+        rawString
+    );
+
+
+    // ----------------------------------------------
+    // Display raw BLE data
+    // ----------------------------------------------
+
+    rawDataDisplay.textContent =
+        "Raw BLE data: " +
+        rawString;
+
+
+    // ----------------------------------------------
+    // Expected:
+    //
+    // angleY,angularVelocityY
+    //
+    // Example:
+    //
+    // 25.43,18.72
+    // ----------------------------------------------
+
+    const values =
+        rawString.split(",");
+
+
+    if (values.length !== 2) {
+
+        console.warn(
+            "Invalid BLE data:",
+            rawString
+        );
+
+        return;
+
+    }
+
+
+    // ----------------------------------------------
+    // Convert to numbers
+    // ----------------------------------------------
+
+    const angle =
+        Number(values[0]);
+
+
+    const angularVelocity =
+        Number(values[1]);
+
+
+    // ----------------------------------------------
+    // Check values
+    // ----------------------------------------------
+
+    if (
+        !Number.isFinite(angle) ||
+        !Number.isFinite(angularVelocity)
+    ) {
+
+        console.warn(
+            "Invalid numerical data:",
+            values
+        );
+
+        return;
+
+    }
+
+
+    // ----------------------------------------------
+    // Update angle
+    // ----------------------------------------------
+
+    angleDisplay.textContent =
+        angle.toFixed(2);
+
+
+    // ----------------------------------------------
+    // Update angular velocity
+    // ----------------------------------------------
+
+    angularVelocityDisplay.textContent =
+        angularVelocity.toFixed(2);
+
+
+    // ----------------------------------------------
+    // Console debugging
+    // ----------------------------------------------
+
+    console.log(
+        "Angle Y:",
+        angle,
+        "deg"
+    );
+
+
+    console.log(
+        "Angular velocity Y:",
+        angularVelocity,
+        "deg/s"
+    );
+
+}
+
+
+// ======================================================
+// DISCONNECT
+// ======================================================
+
+disconnectButton.addEventListener(
+    "click",
+    () => {
+
+        if (
+            device &&
+            device.gatt &&
+            device.gatt.connected
+        ) {
+
+            device.gatt.disconnect();
+
+        }
+
+    }
+);
+
+
+// ======================================================
+// DISCONNECTED
+// ======================================================
+
+function onDisconnected() {
+
+    status.textContent =
+        "Disconnected";
+
+
+    connectButton.disabled =
+        false;
+
+
+    disconnectButton.disabled =
+        true;
+
+
+    resetButton.disabled =
+        true;
+
+
+    characteristic =
+        null;
+
+
+    resetCharacteristic =
+        null;
+
+
+    console.log(
+        "Arduino disconnected"
+    );
+
+}
+
+</script>
+
+</body>
+
+</html>
