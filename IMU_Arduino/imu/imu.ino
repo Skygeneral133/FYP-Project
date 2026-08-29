@@ -11,42 +11,16 @@
 
 
 // =====================================================
-// BLE SERVICE
+// BLE
 // =====================================================
 
 BLEService imuService(SERVICE_UUID);
-
-
-// =====================================================
-// IMU DATA CHARACTERISTIC
-//
-// Arduino -> HTML
-//
-// Format:
-//
-// angleY,angularVelocityY
-//
-// Example:
-//
-// 25.43,18.72
-// =====================================================
 
 BLEStringCharacteristic dataCharacteristic(
   CHARACTERISTIC_UUID,
   BLERead | BLENotify,
   50
 );
-
-
-// =====================================================
-// RESET CHARACTERISTIC
-//
-// HTML -> Arduino
-//
-// HTML sends:
-//
-// RESET
-// =====================================================
 
 BLEStringCharacteristic resetCharacteristic(
   RESET_UUID,
@@ -56,98 +30,94 @@ BLEStringCharacteristic resetCharacteristic(
 
 
 // =====================================================
-// ANGLES
+// VARIABLES
 // =====================================================
 
-float angleX = 0.0;
 float angleY = 0.0;
-float angleZ = 0.0;
 
-
-// =====================================================
-// GYRO BIAS
-// =====================================================
-
+float gyroBiasX = 0.0;
 float gyroBiasY = 0.0;
+float gyroBiasZ = 0.0;
 
-
-// =====================================================
-// TIMING
-// =====================================================
+float accelZeroY = 0.0;
 
 unsigned long previousTime = 0;
 
 
 // =====================================================
-// DEAD BAND
+// SETTINGS
+// =====================================================
+
+const int NUM_CALIBRATION_SAMPLES = 300;
+
+const float GYRO_DEADBAND = 0.10;
+
+// Complementary filter
 //
-// Small gyro measurements below this value
-// are treated as zero.
-//
-// This helps reduce small stationary drift/noise.
-//
-// Units: degrees/second
-// =====================================================
+// Higher number = trust gyro more
+// Lower number = trust accelerometer more
 
-const float GYRO_DEADBAND = 0.08;
+const float ALPHA = 0.98;
 
 
 // =====================================================
-// CALIBRATION SETTINGS
+// CALCULATE ACCELEROMETER Y ANGLE
 // =====================================================
 
-const int NUM_CALIBRATION_SAMPLES = 200;
+float getAccelAngleY() {
+
+  float ax, ay, az;
+
+  while (!IMU.accelerationAvailable()) {
+  }
+
+  IMU.readAcceleration(ax, ay, az);
+
+
+  // For rotation mainly around the Y axis
+  //
+  // Uses X and Z gravity components
+  //
+  // Flat ~= 0 deg
+  // Vertical ~= +/-90 deg
+
+  float angle =
+    atan2(-ax, az)
+    * 180.0 / PI;
+
+
+  return angle;
+}
 
 
 // =====================================================
-// CALIBRATE GYRO
+// CALIBRATE GYROSCOPE
 // =====================================================
 
 void calibrateGyro() {
 
   Serial.println();
-  Serial.println("=================================");
+  Serial.println("==============================");
   Serial.println("GYRO CALIBRATION");
-  Serial.println("=================================");
+  Serial.println("==============================");
 
-  Serial.println(
-    "Keep the IMU COMPLETELY STILL!"
-  );
+  Serial.println("KEEP IMU COMPLETELY STILL!");
 
-  Serial.println(
-    "Do not move the beaker."
-  );
-
-  Serial.println(
-    "Collecting samples..."
-  );
-
-  delay(1000);
+  delay(1500);
 
 
-  // ---------------------------------------------
-  // Reset accumulated value
-  // ---------------------------------------------
-
+  float sumX = 0.0;
   float sumY = 0.0;
+  float sumZ = 0.0;
 
-  int samplesTaken = 0;
+  int samples = 0;
 
 
-  // ---------------------------------------------
-  // Collect gyro samples
-  // ---------------------------------------------
-
-  while (
-    samplesTaken < NUM_CALIBRATION_SAMPLES
-  ) {
+  while (samples < NUM_CALIBRATION_SAMPLES) {
 
     if (IMU.gyroscopeAvailable()) {
 
-      float gx;
-      float gy;
-      float gz;
-
+      float gx, gy, gz;
 
       IMU.readGyroscope(
         gx,
@@ -156,94 +126,80 @@ void calibrateGyro() {
       );
 
 
+      sumX += gx;
       sumY += gy;
+      sumZ += gz;
 
-      samplesTaken++;
-
-
-      // Print progress every 20 samples
-
-      if (
-        samplesTaken % 20 == 0
-      ) {
-
-        Serial.print(
-          "Samples: "
-        );
-
-        Serial.print(
-          samplesTaken
-        );
-
-        Serial.print(
-          "/"
-        );
-
-        Serial.println(
-          NUM_CALIBRATION_SAMPLES
-        );
-      }
-
+      samples++;
 
       delay(5);
     }
   }
 
 
-  // ---------------------------------------------
-  // Calculate average bias
-  // ---------------------------------------------
+  gyroBiasX =
+    sumX / NUM_CALIBRATION_SAMPLES;
 
   gyroBiasY =
-    sumY /
-    NUM_CALIBRATION_SAMPLES;
+    sumY / NUM_CALIBRATION_SAMPLES;
+
+  gyroBiasZ =
+    sumZ / NUM_CALIBRATION_SAMPLES;
 
 
-  // ---------------------------------------------
-  // Print result
-  // ---------------------------------------------
+  Serial.print("GX bias: ");
+  Serial.println(gyroBiasX, 4);
 
-  Serial.println();
+  Serial.print("GY bias: ");
+  Serial.println(gyroBiasY, 4);
 
-  Serial.print(
-    "Gyro Y Bias = "
-  );
-
-  Serial.print(
-    gyroBiasY,
-    4
-  );
-
-  Serial.println(
-    " deg/s"
-  );
+  Serial.print("GZ bias: ");
+  Serial.println(gyroBiasZ, 4);
 
 
-  Serial.println(
-    "Gyro calibration complete."
-  );
+  Serial.println("Calibration complete.");
+}
 
-  Serial.println(
-    "================================="
-  );
+
+// =====================================================
+// ZERO CURRENT POSITION
+// =====================================================
+
+void zeroAngle() {
 
   Serial.println();
+  Serial.println("Setting current position to 0 deg...");
 
 
-  // ---------------------------------------------
-  // Reset angles
-  // ---------------------------------------------
+  const int samples = 100;
 
-  angleX = 0.0;
+  float total = 0.0;
+
+
+  for (int i = 0; i < samples; i++) {
+
+    total += getAccelAngleY();
+
+    delay(5);
+  }
+
+
+  accelZeroY =
+    total / samples;
+
+
   angleY = 0.0;
-  angleZ = 0.0;
 
 
-  // ---------------------------------------------
-  // Reset timer
-  // ---------------------------------------------
+  previousTime =
+    micros();
 
-  previousTime = micros();
+
+  Serial.print("Accelerometer zero reference: ");
+  Serial.print(accelZeroY, 2);
+  Serial.println(" deg");
+
+  Serial.println("Angle reset to 0 deg.");
 }
 
 
@@ -255,7 +211,7 @@ void setup() {
 
   Serial.begin(9600);
 
-  while (!Serial);
+  delay(1000);;
 
 
   // ===================================================
@@ -272,9 +228,16 @@ void setup() {
   }
 
 
-  Serial.println(
-    "IMU initialized!"
-  );
+  Serial.println("IMU initialized!");
+
+
+  // ===================================================
+  // CALIBRATE
+  // ===================================================
+
+  calibrateGyro();
+
+  zeroAngle();
 
 
   // ===================================================
@@ -291,82 +254,40 @@ void setup() {
   }
 
 
-  BLE.setLocalName(
-    "IMUArduino"
-  );
+  BLE.setLocalName("IMUArduino");
 
-
-  BLE.setDeviceName(
-    "IMUArduino"
-  );
-
+  BLE.setDeviceName("IMUArduino");
 
   BLE.setAdvertisedService(
     imuService
   );
 
 
-  // ===================================================
-  // ADD DATA CHARACTERISTIC
-  // ===================================================
-
   imuService.addCharacteristic(
     dataCharacteristic
   );
-
-
-  // ===================================================
-  // ADD RESET CHARACTERISTIC
-  // ===================================================
 
   imuService.addCharacteristic(
     resetCharacteristic
   );
 
 
-  // ===================================================
-  // ADD SERVICE
-  // ===================================================
-
   BLE.addService(
     imuService
   );
 
-
-  // ===================================================
-  // INITIAL BLE VALUE
-  // ===================================================
 
   dataCharacteristic.writeValue(
     "0.00,0.00"
   );
 
 
-  // ===================================================
-  // START ADVERTISING
-  // ===================================================
-
   BLE.advertise();
 
 
-  Serial.println(
-    "BLE started!"
-  );
-
-  Serial.println(
-    "Device name: IMUArduino"
-  );
-
-  Serial.println(
-    "Waiting for connection..."
-  );
-
-
-  // ===================================================
-  // INITIAL TIME
-  // ===================================================
-
-  previousTime = micros();
+  Serial.println();
+  Serial.println("BLE started!");
+  Serial.println("Waiting for connection...");
 }
 
 
@@ -376,111 +297,61 @@ void setup() {
 
 void loop() {
 
-  // ===================================================
-  // CHECK BLE CONNECTION
-  // ===================================================
-
   BLEDevice central =
     BLE.central();
 
 
   if (central) {
 
-    Serial.println();
-
-    Serial.print(
-      "Connected to: "
-    );
-
+    Serial.print("Connected to: ");
     Serial.println(
       central.address()
     );
 
-    Serial.println();
+
+    previousTime =
+      micros();
 
 
-    // Reset timing when connection starts
-
-    previousTime = micros();
+    while (central.connected()) {
 
 
-    // =================================================
-    // MAIN BLE LOOP
-    // =================================================
+      // =================================================
+      // RESET BUTTON
+      // =================================================
 
-    while (
-      central.connected()
-    ) {
-
-
-      // ===============================================
-      // CHECK FOR RESET COMMAND
-      // ===============================================
-
-      if (
-        resetCharacteristic.written()
-      ) {
+      if (resetCharacteristic.written()) {
 
         String command =
           resetCharacteristic.value();
 
-
         command.trim();
 
 
-        Serial.print(
-          "BLE command received: "
-        );
+        if (command == "RESET") {
 
-        Serial.println(
-          command
-        );
-
-
-        // =============================================
-        // RESET COMMAND
-        // =============================================
-
-        if (
-          command == "RESET"
-        ) {
-
-          // -------------------------------------------
-          // Calibrate gyro and reset angle
-          // -------------------------------------------
+          Serial.println();
+          Serial.println("RESET RECEIVED");
 
           calibrateGyro();
 
+          zeroAngle();
 
-          // -------------------------------------------
-          // Send zero value to HTML
-          // -------------------------------------------
 
           dataCharacteristic.writeValue(
             "0.00,0.00"
           );
-
-
-          Serial.println(
-            "IMU reset complete."
-          );
-
         }
       }
 
 
-      // ===============================================
-      // READ GYROSCOPE
-      // ===============================================
+      // =================================================
+      // READ GYRO
+      // =================================================
 
-      float gx;
-      float gy;
-      float gz;
+      if (IMU.gyroscopeAvailable()) {
 
-
-      if (
-        IMU.gyroscopeAvailable()
-      ) {
+        float gx, gy, gz;
 
         IMU.readGyroscope(
           gx,
@@ -489,19 +360,16 @@ void loop() {
         );
 
 
-        // =============================================
-        // CALCULATE TIME
-        // =============================================
+        // ===============================================
+        // TIME DIFFERENCE
+        // ===============================================
 
         unsigned long currentTime =
           micros();
 
 
         float dt =
-          (
-            currentTime -
-            previousTime
-          )
+          (currentTime - previousTime)
           / 1000000.0;
 
 
@@ -509,135 +377,195 @@ void loop() {
           currentTime;
 
 
-        // =============================================
-        // APPLY GYRO BIAS CORRECTION
-        // =============================================
+        // Ignore unreasonable timing gaps
 
-        float correctedGy =
-          gy - gyroBiasY;
+        if (dt <= 0 || dt > 0.1) {
 
+          delay(10);
 
-        // =============================================
-        // APPLY DEAD BAND
-        // =============================================
-
-        if (
-          abs(correctedGy)
-          < GYRO_DEADBAND
-        ) {
-
-          correctedGy = 0.0;
+          continue;
         }
 
 
-        // =============================================
-        // INTEGRATE GYRO
-        //
-        // angle = angle + angular velocity * dt
-        // =============================================
+        // ===============================================
+        // REMOVE GYRO BIAS
+        // ===============================================
 
-        angleY +=
-          correctedGy * dt;
+        float correctedGX =
+          gx - gyroBiasX;
 
+        float correctedGY =
+          gy - gyroBiasY;
 
-        // =============================================
-        // Y ANGULAR VELOCITY
-        // =============================================
-
-        float angularVelocityY =
-          correctedGy;
+        float correctedGZ =
+          gz - gyroBiasZ;
 
 
-        // =============================================
-        // SEND BLE DATA
-        //
-        // Format:
-        //
-        // angleY,angularVelocityY
-        //
-        // Example:
-        //
-        // 25.43,18.72
-        // =============================================
+        // ===============================================
+        // GYRO DEAD BAND
+        // ===============================================
 
-        char data[50];
+        if (
+          abs(correctedGY)
+          < GYRO_DEADBAND
+        ) {
+
+          correctedGY = 0.0;
+        }
 
 
-        snprintf(
-          data,
-          sizeof(data),
-          "%.2f,%.2f",
-          angleY,
-          angularVelocityY
-        );
+        // ===============================================
+        // GYRO Y ANGLE
+        // ===============================================
+
+        float gyroAngleY =
+          angleY +
+          correctedGY * dt;
 
 
-        dataCharacteristic.writeValue(
-          data
-        );
+        // ===============================================
+        // READ ACCELEROMETER
+        // ===============================================
+
+        float ax, ay, az;
 
 
-        // =============================================
-        // SERIAL MONITOR
-        // =============================================
+        if (IMU.accelerationAvailable()) {
 
-        Serial.print(
-          "Y Angle: "
-        );
-
-        Serial.print(
-          angleY,
-          2
-        );
+          IMU.readAcceleration(
+            ax,
+            ay,
+            az
+          );
 
 
-        Serial.print(
-          " deg | Y Angular Velocity: "
-        );
+          // Y angle relative to starting position
 
-        Serial.print(
-          angularVelocityY,
-          2
-        );
+          float rawAccelY =
+            atan2(-ax, az)
+            * 180.0 / PI;
 
 
-        Serial.print(
-          " deg/s | Bias: "
-        );
-
-        Serial.print(
-          gyroBiasY,
-          4
-        );
+          float accelAngleY =
+            rawAccelY -
+            accelZeroY;
 
 
-        Serial.println(
-          " deg/s"
-        );
+          // =============================================
+          // CHECK ACCELERATION MAGNITUDE
+          // =============================================
+
+          float accelMagnitude =
+            sqrt(
+              ax * ax +
+              ay * ay +
+              az * az
+            );
+
+
+          // =============================================
+          // DETECT NON-Y ROTATION
+          // =============================================
+
+          bool mostlyYRotation =
+            abs(correctedGY) >=
+            abs(correctedGX)
+            &&
+            abs(correctedGY) >=
+            abs(correctedGZ);
+
+
+          // =============================================
+          // COMPLEMENTARY FILTER
+          // =============================================
+
+          // Accelerometer is trusted only when:
+          //
+          // 1. acceleration is near gravity
+          // 2. we're mostly rotating around Y
+          //
+          // Otherwise keep gyro-Y estimate.
+
+          bool accelValid =
+            accelMagnitude > 0.85 &&
+            accelMagnitude < 1.15;
+
+
+          if (
+            accelValid &&
+            (
+              mostlyYRotation ||
+              abs(correctedGY) < 1.0
+            )
+          ) {
+
+            angleY =
+              ALPHA * gyroAngleY
+              +
+              (1.0 - ALPHA)
+              * accelAngleY;
+
+          }
+
+          else {
+
+            angleY =
+              gyroAngleY;
+          }
+
+
+          // =============================================
+          // BLE DATA
+          // =============================================
+
+          char data[50];
+
+
+          snprintf(
+            data,
+            sizeof(data),
+            "%.2f,%.2f",
+            angleY,
+            correctedGY
+          );
+
+
+          dataCharacteristic.writeValue(
+            data
+          );
+
+
+          // =============================================
+          // SERIAL DEBUGGING
+          // =============================================
+
+          Serial.print("Angle Y: ");
+          Serial.print(angleY, 2);
+
+          Serial.print(" | GY: ");
+          Serial.print(correctedGY, 2);
+
+          Serial.print(" | GX: ");
+          Serial.print(correctedGX, 2);
+
+          Serial.print(" | GZ: ");
+          Serial.print(correctedGZ, 2);
+
+          Serial.print(" | Acc Y: ");
+          Serial.print(accelAngleY, 2);
+
+          Serial.print(" | Acc mag: ");
+          Serial.println(accelMagnitude, 3);
+        }
       }
 
-
-      // ===============================================
-      // LOOP DELAY
-      // ===============================================
 
       delay(10);
     }
 
 
-    // =================================================
-    // BLE DISCONNECTED
-    // =================================================
-
     Serial.println();
-
-    Serial.println(
-      "BLE disconnected."
-    );
-
-    Serial.println(
-      "Waiting for connection..."
-    );
-
+    Serial.println("BLE disconnected.");
+    Serial.println("Waiting for connection...");
   }
 }
