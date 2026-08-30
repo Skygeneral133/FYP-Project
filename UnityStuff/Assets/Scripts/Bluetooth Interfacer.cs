@@ -320,4 +320,20 @@ public class BluetoothInterfacer : MonoBehaviour
         imu.addressFound = false;
         StartScanning();
     }
+    
+    public void ToggleConnection()
+    {
+        bool anyConnected = loadCell.isConnected || imu.isConnected;
+
+        if (anyConnected)
+        {
+            Debug.Log("Toggle: disconnecting...");
+            DisconnectAll();
+        }
+        else
+        {
+            Debug.Log("Toggle: connecting...");
+            Connect();
+        }
+    }
 }
