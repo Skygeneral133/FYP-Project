@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pouring Experiment Monitor</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #f7f8fb, #fff7fa);
+      color: #1f2937;
+      padding: 36px 24px;
+    }
+
+    h1 {
+      margin: 0;
+      color: #7b4f5f;
+      font-size: 34px;
+      letter-spacing: -0.5px;
+    }
+
+    .sub {
+      color: #6b7280;
+      margin-top: 8px;
+      margin-bottom: 30px;
+      font-size: 16px;
+    }
+
+    .section {
+      max-width: 1250px;
+      margin: 0 auto;
+      background: rgba(255,255,255,0.96);
+      padding: 28px;
+      border-radius: 22px;
+      box-shadow: 0 18px 45px rgba(31,41,55,0.10);
+      border: 1px solid #f0dce4;
+    }
+
+    .two-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      align-items: stretch;
+    }
+
+    .panel {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 8px 22px rgba(31,41,55,0.08);
+      border: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel h2 {
+      margin: 0 0 18px 0;
+      color: #8f5c70;
+      font-size: 26px;
+      letter-spacing: -0.3px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .card {
+      min-height: 170px;
+      padding: 24px 18px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #ffffff, #f8fafc);
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 5px 14px rgba(31,41,55,0.07);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .label {
+      font-size: 16px;
+      color: #6b7280;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .value {
+      font-size: 48px;
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: -1px;
+      margin-bottom: 10px;
+    }
+
+    .unit {
+      font-size: 15px;
+      color: #6b7280;
+      text-align: center;
+    }
+
+    .status {
+      margin: 20px 0 12px 0;
+      border: 1px solid #f2d7e1;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: #f3f4f6;
+      font-size: 15px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .button-row {
+      margin: 0 0 16px 0;
+      min-height: 112px;
+      text-align: center;
+    }
+
+    button {
+      padding: 11px 18px;
+      margin: 5px;
+      font-size: 14px;
+      border: 1px solid #e6d6dc;
+      border-radius: 10px;
+      cursor: pointer;
+      background: #f8f4f6;
+      color: #5d4a52;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease,
+                  box-shadow 0.15s ease, opacity 0.15s ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: #eee4e8;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.10);
+    }
+
+    /* Dark while the button is being pressed */
+    button:active:not(:disabled) {
+      background: #3f3439;
+      color: #ffffff;
+      transform: translateY(0);
+    }
+
+    /* Keep keyboard/mouse-selected button dark until focus moves away */
+    button:focus-visible:not(:disabled) {
+      background: #3f3439;
+      color: #ffffff;
+      outline: 2px solid #e8bccb;
+      outline-offset: 2px;
+    }
+
+    button:disabled {
+      opacity: 0.40;
+      cursor: not-allowed;
+      background: #f4f4f4;
+      color: #999999;
+    }
+
+    .connect,
+    .disconnect,
+    .reset {
+      background: #f8f4f6;
+      color: #5d4a52;
+    }
+
+    .reset {
+      border-color: #edc9d6;
+      font-weight: 700;
+    }
+
+    .second-line {
+      display: block;
+      margin-top: 6px;
+    }
+
+    .raw {
+      margin-top: auto;
+      background: #2b2b2f;
+      color: #86efac;
+      padding: 13px 14px;
+      border-radius: 10px;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      text-align: left;
+      overflow-x: auto;
+      min-height: 46px;
+    }
+
+    @media (max-width: 950px) {
+      .two-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .cards {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      body {
+        padding: 20px 12px;
+      }
+
+      .section {
+        padding: 16px;
+      }
+
+      .panel {
+        padding: 18px;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .value {
+        font-size: 42px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div style="text-align:center; max-width:1250px; margin:0 auto;">
+    <h1>Pouring Experiment Monitor</h1>
+    <div class="sub">
+    </div>
+  </div>
+
+  <div class="section">
+
+    <div class="two-panel">
+
+      <!-- =============================== -->
+      <!-- IMU LEFT -->
+      <!-- =============================== -->
+
+      <div class="panel">
+        <h2>IMU</h2>
+
+        <div class="cards">
+          <div class="card">
+            <div class="label">Y Pouring Angle</div>
+            <div class="value" id="angle">0.00</div>
+            <div class="unit">degrees</div>
+          </div>
+
+          <div class="card">
+            <div class="label">Y Angular Velocity</div>
+            <div class="value" id="angularVelocity">0.00</div>
+            <div class="unit">degrees / second</div>
+          </div>
+        </div>
+
+        <div id="imuStatus" class="status">
+          Status: Disconnected
+        </div>
+
+        <div class="button-row">
+          <button id="connectIMUButton" class="connect">
+            Connect IMU
+          </button>
+
+          <button id="disconnectIMUButton" class="disconnect" disabled>
+            Disconnect IMU
+          </button>
+
+          <span class="second-line">
+            <button id="resetIMUButton" class="reset" disabled>
+              Reset IMU Angle
+            </button>
+          </span>
+        </div>
+
+        <div id="imuRawData" class="raw">
+          IMU BLE Data: Waiting...
+        </div>
+      </div>
+
+      <!-- =============================== -->
+      <!-- LOAD CELL RIGHT -->
+      <!-- =============================== -->
+
+      <div class="panel">
+        <h2>Load Cell</h2>
+
+        <div class="cards">
+          <div class="card">
+            <div class="label">Weight</div>
+            <div class="value" id="weight">0.00</div>
+            <div class="unit">grams</div>
+          </div>
+
+          <div class="card">
+            <div class="label">Pouring Rate</div>
+            <div class="value" id="pouringRate">0.00</div>
+            <div class="unit">grams / second</div>
+          </div>
+        </div>
+
+        <div id="loadStatus" class="status">
+          Status: Disconnected
+        </div>
+
+        <div class="button-row">
+          <button id="connectLoadButton" class="connect">
+            Connect Load Cell
+          </button>
+
+          <button id="disconnectLoadButton" class="disconnect" disabled>
+            Disconnect Load Cell
+          </button>
+
+          <span class="second-line">
+            <button id="tareButton" class="reset" disabled>
+              Tare / Reset Weight
+            </button>
+          </span>
+        </div>
+
+        <div id="loadRawData" class="raw">
+          Load Cell BLE Data: Waiting...
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+<script>
+
+// ======================================================
+// UUIDs
+// Both devices currently use the same service / characteristic
+// UUID values, but they are separate BLE devices, so this is okay.
+// ======================================================
+
+const SERVICE_UUID =
+  "19b10000-e8f2-537e-4f6c-d104768a1214";
+
+const DATA_CHARACTERISTIC_UUID =
+  "19b10001-e8f2-537e-4f6c-d104768a1214";
+
+const COMMAND_CHARACTERISTIC_UUID =
+  "19b10002-e8f2-537e-4f6c-d104768a1214";
+
+
+// ======================================================
+// IMU BLE VARIABLES
+// ======================================================
+
+let imuDevice = null;
+let imuCharacteristic = null;
+let imuResetCharacteristic = null;
+
+
+// ======================================================
+// LOAD CELL BLE VARIABLES
+// ======================================================
+
+let loadDevice = null;
+let loadCharacteristic = null;
+let loadTareCharacteristic = null;
+
+
+// ======================================================
+// HTML ELEMENTS
+// ======================================================
+
+// IMU
+const imuStatus =
+  document.getElementById("imuStatus");
+
+const angleDisplay =
+  document.getElementById("angle");
+
+const angularVelocityDisplay =
+  document.getElementById("angularVelocity");
+
+const imuRawData =
+  document.getElementById("imuRawData");
+
+const connectIMUButton =
+  document.getElementById("connectIMUButton");
+
+const disconnectIMUButton =
+  document.getElementById("disconnectIMUButton");
+
+const resetIMUButton =
+  document.getElementById("resetIMUButton");
+
+
+// Load cell
+const loadStatus =
+  document.getElementById("loadStatus");
+
+const weightDisplay =
+  document.getElementById("weight");
+
+const pouringRateDisplay =
+  document.getElementById("pouringRate");
+
+const loadRawData =
+  document.getElementById("loadRawData");
+
+const connectLoadButton =
+  document.getElementById("connectLoadButton");
+
+const disconnectLoadButton =
+  document.getElementById("disconnectLoadButton");
+
+const tareButton =
+  document.getElementById("tareButton");
+
+
+// ======================================================
+// IMU CONNECT
+// ======================================================
+
+connectIMUButton.addEventListener(
+  "click",
+  connectIMU
+);
+
+async function connectIMU() {
+
+  try {
+
+    imuStatus.textContent =
+      "Status: Searching for IMUArduino...";
+
+    imuDevice =
+      await navigator.bluetooth.requestDevice({
+        filters: [
+          {
+            name: "IMUArduino"
+          }
+        ],
+        optionalServices: [
+          SERVICE_UUID
+        ]
+      });
+
+    imuDevice.addEventListener(
+      "gattserverdisconnected",
+      handleIMUDisconnect
+    );
+
+    imuStatus.textContent =
+      "Status: Connecting...";
+
+    const server =
+      await imuDevice.gatt.connect();
+
+    const service =
+      await server.getPrimaryService(
+        SERVICE_UUID
+      );
+
+    imuCharacteristic =
+      await service.getCharacteristic(
+        DATA_CHARACTERISTIC_UUID
+      );
+
+    imuResetCharacteristic =
+      await service.getCharacteristic(
+        COMMAND_CHARACTERISTIC_UUID
+      );
+
+    await imuCharacteristic.startNotifications();
+
+    imuCharacteristic.addEventListener(
+      "characteristicvaluechanged",
+      handleIMUData
+    );
+
+    imuStatus.textContent =
+      "Status: Connected to " +
+      imuDevice.name;
+
+    connectIMUButton.disabled = true;
+    disconnectIMUButton.disabled = false;
+    resetIMUButton.disabled = false;
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    imuStatus.textContent =
+      "Status: IMU connection failed - " +
+      error.message;
+  }
+}
+
+
+// ======================================================
+// IMU DATA
+//
+// Expected:
+// angleY,angularVelocityY
+//
+// Example:
+// 45.20,12.50
+// ======================================================
+
+function handleIMUData(event) {
+
+  const dataView =
+    event.target.value;
+
+  const decoder =
+    new TextDecoder("utf-8");
+
+  const rawString =
+    decoder.decode(
+      new Uint8Array(
+        dataView.buffer,
+        dataView.byteOffset,
+        dataView.byteLength
+      )
+    ).trim();
+
+  imuRawData.textContent =
+    "IMU BLE Data: " +
+    rawString;
+
+  const values =
+    rawString.split(",");
+
+  if (values.length !== 2) {
+    console.warn(
+      "Invalid IMU data:",
+      rawString
+    );
+    return;
+  }
+
+  const angle =
+    Number(values[0]);
+
+  const angularVelocity =
+    Number(values[1]);
+
+  if (
+    !Number.isFinite(angle) ||
+    !Number.isFinite(angularVelocity)
+  ) {
+    return;
+  }
+
+  angleDisplay.textContent =
+    angle.toFixed(2);
+
+  angularVelocityDisplay.textContent =
+    angularVelocity.toFixed(2);
+}
+
+
+// ======================================================
+// RESET IMU
+// ======================================================
+
+resetIMUButton.addEventListener(
+  "click",
+  resetIMU
+);
+
+async function resetIMU() {
+
+  if (!imuResetCharacteristic) {
+    alert("IMU is not connected.");
+    return;
+  }
+
+  const confirmed =
+    confirm(
+      "Keep the IMU still in the desired 0° position.\n\nPress OK to reset."
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+
+    const encoder =
+      new TextEncoder();
+
+    await imuResetCharacteristic.writeValue(
+      encoder.encode("RESET")
+    );
+
+    angleDisplay.textContent =
+      "0.00";
+
+    angularVelocityDisplay.textContent =
+      "0.00";
+
+    imuRawData.textContent =
+      "IMU BLE Data: RESET command sent";
+
+    imuStatus.textContent =
+      "Status: IMU angle reset";
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    imuStatus.textContent =
+      "Status: IMU reset failed - " +
+      error.message;
+  }
+}
+
+
+// ======================================================
+// IMU DISCONNECT
+// ======================================================
+
+disconnectIMUButton.addEventListener(
+  "click",
+  () => {
+
+    if (
+      imuDevice &&
+      imuDevice.gatt &&
+      imuDevice.gatt.connected
+    ) {
+      imuDevice.gatt.disconnect();
+    }
+  }
+);
+
+function handleIMUDisconnect() {
+
+  imuStatus.textContent =
+    "Status: Disconnected";
+
+  connectIMUButton.disabled =
+    false;
+
+  disconnectIMUButton.disabled =
+    true;
+
+  resetIMUButton.disabled =
+    true;
+
+  imuCharacteristic =
+    null;
+
+  imuResetCharacteristic =
+    null;
+}
+
+
+// ======================================================
+// LOAD CELL CONNECT
+// ======================================================
+
+connectLoadButton.addEventListener(
+  "click",
+  connectLoadCell
+);
+
+async function connectLoadCell() {
+
+  try {
+
+    loadStatus.textContent =
+      "Status: Searching for LoadCellArduino...";
+
+    loadDevice =
+      await navigator.bluetooth.requestDevice({
+        filters: [
+          {
+            name: "LoadCellArduino"
+          }
+        ],
+        optionalServices: [
+          SERVICE_UUID
+        ]
+      });
+
+    loadDevice.addEventListener(
+      "gattserverdisconnected",
+      handleLoadDisconnect
+    );
+
+    loadStatus.textContent =
+      "Status: Connecting...";
+
+    const server =
+      await loadDevice.gatt.connect();
+
+    const service =
+      await server.getPrimaryService(
+        SERVICE_UUID
+      );
+
+    loadCharacteristic =
+      await service.getCharacteristic(
+        DATA_CHARACTERISTIC_UUID
+      );
+
+    loadTareCharacteristic =
+      await service.getCharacteristic(
+        COMMAND_CHARACTERISTIC_UUID
+      );
+
+    await loadCharacteristic.startNotifications();
+
+    loadCharacteristic.addEventListener(
+      "characteristicvaluechanged",
+      handleLoadData
+    );
+
+    loadStatus.textContent =
+      "Status: Connected to " +
+      loadDevice.name;
+
+    connectLoadButton.disabled =
+      true;
+
+    disconnectLoadButton.disabled =
+      false;
+
+    tareButton.disabled =
+      false;
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    loadStatus.textContent =
+      "Status: Load cell connection failed - " +
+      error.message;
+  }
+}
+
+
+// ======================================================
+// LOAD CELL DATA
+//
+// Expected:
+// weight,pouringRate
+//
+// Example:
+// 120.50,18.30
+// ======================================================
+
+function handleLoadData(event) {
+
+  const dataView =
+    event.target.value;
+
+  const decoder =
+    new TextDecoder("utf-8");
+
+  const data =
+    decoder.decode(
+      new Uint8Array(
+        dataView.buffer,
+        dataView.byteOffset,
+        dataView.byteLength
+      )
+    ).trim();
+
+  loadRawData.textContent =
+    "Load Cell BLE Data: " +
+    data;
+
+  const values =
+    data.split(",");
+
+  if (values.length !== 2) {
+    console.warn(
+      "Invalid load cell data:",
+      data
+    );
+    return;
+  }
+
+  const weight =
+    Number(values[0]);
+
+  const pouringRate =
+    Number(values[1]);
+
+  if (
+    !Number.isFinite(weight) ||
+    !Number.isFinite(pouringRate)
+  ) {
+    return;
+  }
+
+  weightDisplay.textContent =
+    weight.toFixed(2);
+
+  pouringRateDisplay.textContent =
+    pouringRate.toFixed(2);
+}
+
+
+// ======================================================
+// TARE LOAD CELL
+// ======================================================
+
+tareButton.addEventListener(
+  "click",
+  tareLoadCell
+);
+
+async function tareLoadCell() {
+
+  if (!loadTareCharacteristic) {
+    alert("Load cell is not connected.");
+    return;
+  }
+
+  const confirmed =
+    confirm(
+      "Make sure the load cell is at the desired starting weight.\n\nPress OK to tare."
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+
+    const encoder =
+      new TextEncoder();
+
+    await loadTareCharacteristic.writeValue(
+      encoder.encode("TARE")
+    );
+
+    weightDisplay.textContent =
+      "0.00";
+
+    pouringRateDisplay.textContent =
+      "0.00";
+
+    loadRawData.textContent =
+      "Load Cell BLE Data: TARE command sent";
+
+    loadStatus.textContent =
+      "Status: Load cell tared";
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    loadStatus.textContent =
+      "Status: Tare failed - " +
+      error.message;
+  }
+}
+
+
+// ======================================================
+// LOAD CELL DISCONNECT
+// ======================================================
+
+disconnectLoadButton.addEventListener(
+  "click",
+  () => {
+
+    if (
+      loadDevice &&
+      loadDevice.gatt &&
+      loadDevice.gatt.connected
+    ) {
+      loadDevice.gatt.disconnect();
+    }
+  }
+);
+
+function handleLoadDisconnect() {
+
+  loadStatus.textContent =
+    "Status: Disconnected";
+
+  connectLoadButton.disabled =
+    false;
+
+  disconnectLoadButton.disabled =
+    true;
+
+  tareButton.disabled =
+    true;
+
+  loadCharacteristic =
+    null;
+
+  loadTareCharacteristic =
+    null;
+}
+
+</script>
+
+</body>
+</html>
