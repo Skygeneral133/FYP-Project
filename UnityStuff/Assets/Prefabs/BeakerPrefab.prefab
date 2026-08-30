@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5871707757261309379}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: PositionAnchor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -191,7 +191,7 @@ GameObject:
   - component: {fileID: 3801739993061984248}
   - component: {fileID: 8562023702496850484}
   m_Layer: 0
-  m_Name: Object_6
+  m_Name: Beaker
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

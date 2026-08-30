@@ -1,7 +1,7 @@
 using TMPro;
 using UnityEngine;
 
-public class weighttext : MonoBehaviour
+public class WeightText : MonoBehaviour
 {
     public BluetoothInterfacer BluetoothInterface;
     public float weight;
@@ -18,7 +18,7 @@ public class weighttext : MonoBehaviour
     void Update()
     {
         weight = BluetoothInterface.CurrentWeight;
-        isConnected = BluetoothInterface._isConnected;
+        isConnected = BluetoothInterface.isLoadCellConnected;
         text.text = weight.ToString("F2");
         conText.text = isConnected.ToString();
     }

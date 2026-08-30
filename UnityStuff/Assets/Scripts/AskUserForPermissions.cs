@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Android;
 using System.Collections;
 
-public class Begginforblue : MonoBehaviour
+public class AskUserForPermissions : MonoBehaviour
 {
     
     void Start()
