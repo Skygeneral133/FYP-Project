@@ -214,7 +214,6 @@ public class BluetoothInterfacer : MonoBehaviour
     // (load cell: weight,pouringRate) — matching the web reference implementation.
     private void OnDataReceived(string deviceAddress, string characteristicUUID, byte[] bytes)
     {
-        Debug.Log($"[RAW] len={(bytes?.Length ?? -1)} text=\"{(bytes != null ? System.Text.Encoding.UTF8.GetString(bytes) : "null")}\"");
 
         if (!devicesByAddress.TryGetValue(deviceAddress, out var device))
         {
@@ -225,13 +224,11 @@ public class BluetoothInterfacer : MonoBehaviour
         string c = characteristicUUID.ToLower();
         if (c != device.characteristicAUUID.ToLower())
         {
-            Debug.LogWarning($"[UUID MISMATCH] Got {c}, expected {device.characteristicAUUID.ToLower()} for {device.deviceName}");
             return;
         }
 
         if (!TryParseCsvPair(bytes, out float value1, out float value2))
         {
-            Debug.LogWarning($"Malformed data from {device.deviceName}: {BytesToDebugString(bytes)}");
             return;
         }
 
@@ -245,7 +242,6 @@ public class BluetoothInterfacer : MonoBehaviour
         {
             CurrentPourAngle = value1;
             CurrentVelocity = value2;
-            Debug.Log($"[OK] IMU -> angle={CurrentPourAngle} vel={CurrentVelocity}");
         }
     }
 
@@ -282,8 +278,17 @@ public class BluetoothInterfacer : MonoBehaviour
         try { return Encoding.UTF8.GetString(bytes); }
         catch { return BitConverter.ToString(bytes); }
     }
-    
 
+
+    public void Tare()
+    {
+        SendCommand(loadCell, "TARE");
+    }
+
+    public void Reset()
+    {
+        SendCommand(imu, "RESET");
+    }
     private void SendCommand(BleDeviceConfig device, string command)
     {
         if (!device.isConnected)
@@ -300,7 +305,7 @@ public class BluetoothInterfacer : MonoBehaviour
             device.characteristicBUUID,
             payload,
             payload.Length,
-            false, // withoutResponse — set true/false to match your firmware's expectations
+            true, // withoutResponse — set true/false to match your firmware's expectations
             (characteristic) => Debug.Log($"Sent '{command}' to {device.deviceName}"));
     }
 

@@ -283,7 +283,7 @@ RectTransform:
   m_GameObject: {fileID: 55515452}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.3447, y: 1.3447, z: 1.3447}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 626872937}
@@ -291,7 +291,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.22047071}
   m_AnchorMax: {x: 1, y: 0.22047071}
-  m_AnchoredPosition: {x: -371.5, y: 95.70001}
+  m_AnchoredPosition: {x: -331.63983, y: 89.409}
   m_SizeDelta: {x: -1279, y: 0}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &55515454
@@ -422,7 +422,7 @@ RectTransform:
   m_GameObject: {fileID: 133596760}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 2.1671653, y: 2.1671653, z: 2.1671653}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1158257985}
@@ -477,9 +477,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 218095391}
-        m_TargetAssemblyTypeName: OutputText, Assembly-CSharp
-        m_MethodName: reset
+      - m_Target: {fileID: 218095385}
+        m_TargetAssemblyTypeName: BluetoothInterfacer, Assembly-CSharp
+        m_MethodName: Reset
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -2063,8 +2063,8 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1549215168}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 5.3691}
+  m_LocalScale: {x: 1.2386, y: 1.2386, z: 1.2386}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1983449045}
@@ -2074,7 +2074,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -130}
+  m_AnchoredPosition: {x: 7, y: -117.27}
   m_SizeDelta: {x: -980, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1549215170
@@ -2335,7 +2335,7 @@ RectTransform:
   m_GameObject: {fileID: 1617480596}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.3447, y: 1.3447, z: 1.3447}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 55300353}
@@ -2343,7 +2343,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.22047071}
   m_AnchorMax: {x: 1, y: 0.22047071}
-  m_AnchoredPosition: {x: 377.7, y: 182.20001}
+  m_AnchoredPosition: {x: 308.10004, y: 205.72998}
   m_SizeDelta: {x: -1280, y: 0}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &1617480598
@@ -2772,7 +2772,7 @@ RectTransform:
   m_GameObject: {fileID: 1797057698}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.9765699, y: 1.9765699, z: 1.9765699}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 997464030}
@@ -2780,7 +2780,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -350, y: -100}
+  m_AnchoredPosition: {x: -389, y: -100}
   m_SizeDelta: {x: -1100, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1797057700
@@ -2827,9 +2827,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 218095384}
-        m_TargetAssemblyTypeName: OutputText, Assembly-CSharp
-        m_MethodName: tare
+      - m_Target: {fileID: 218095385}
+        m_TargetAssemblyTypeName: BluetoothInterfacer, Assembly-CSharp
+        m_MethodName: Tare
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -3041,7 +3041,7 @@ RectTransform:
   m_GameObject: {fileID: 2017677233}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.3447, y: 1.3447, z: 1.3447}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 911604385}
@@ -3049,7 +3049,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.22047071}
   m_AnchorMax: {x: 1, y: 0.22047071}
-  m_AnchoredPosition: {x: 346.4, y: 95.70001}
+  m_AnchoredPosition: {x: 266, y: 89.409}
   m_SizeDelta: {x: -1280, y: 0}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &2017677235
@@ -3179,7 +3179,7 @@ RectTransform:
   m_GameObject: {fileID: 2086924284}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.3447, y: 1.3447, z: 1.3447}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1667904126}
@@ -3187,7 +3187,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.22047071}
   m_AnchorMax: {x: 1, y: 0.22047071}
-  m_AnchoredPosition: {x: -374, y: 170.59998}
+  m_AnchoredPosition: {x: -335, y: 190.13}
   m_SizeDelta: {x: -1280, y: -1}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &2086924286
