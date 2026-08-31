@@ -9,6 +9,8 @@ public class OutputText : MonoBehaviour
     public TextMeshProUGUI text;
     public TextMeshProUGUI connectionText;
     public ThingToOutput whatsToOutput;
+    public float numToMinusWei = 0;
+    public float numToMinusAng = 0;
 
     void Start()
     {
@@ -20,7 +22,7 @@ public class OutputText : MonoBehaviour
         switch (whatsToOutput)
         {
             case ThingToOutput.Weight:
-                numToDisplay = BluetoothInterface.CurrentWeight;
+                numToDisplay = BluetoothInterface.CurrentWeight - numToMinusWei;
                 isDeviceConnected = BluetoothInterface.isLoadCellConnected;
                 break;
             case ThingToOutput.PouringRate:
@@ -28,7 +30,7 @@ public class OutputText : MonoBehaviour
                 isDeviceConnected = BluetoothInterface.isLoadCellConnected;
                 break;
             case ThingToOutput.YPouringAngle:
-                numToDisplay = BluetoothInterface.CurrentPourAngle;
+                numToDisplay = BluetoothInterface.CurrentPourAngle - numToMinusAng;
                 isDeviceConnected = BluetoothInterface.isIMUConnected;
                 break;
             case ThingToOutput.YAngularVelocity:
@@ -39,6 +41,16 @@ public class OutputText : MonoBehaviour
 
         text.text = numToDisplay.ToString("F2");
         connectionText.text = isDeviceConnected.ToString();
+    }
+
+    public void tare()
+    {
+        numToMinusWei = numToDisplay;
+    }
+
+    public void reset()
+    {
+        numToMinusAng = numToDisplay;
     }
 }
 

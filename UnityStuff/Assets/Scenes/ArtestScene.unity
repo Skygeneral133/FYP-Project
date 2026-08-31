@@ -477,9 +477,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 218095385}
-        m_TargetAssemblyTypeName: BluetoothInterfacer, Assembly-CSharp
-        m_MethodName: ResetIMU
+      - m_Target: {fileID: 218095391}
+        m_TargetAssemblyTypeName: OutputText, Assembly-CSharp
+        m_MethodName: reset
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -706,6 +706,8 @@ MonoBehaviour:
   text: {fileID: 1667904124}
   connectionText: {fileID: 1584504118}
   whatsToOutput: 0
+  numToMinusWei: 0
+  numToMinusAng: 0
 --- !u!114 &218095385
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -826,6 +828,8 @@ MonoBehaviour:
   text: {fileID: 911604386}
   connectionText: {fileID: 217665200}
   whatsToOutput: 3
+  numToMinusWei: 0
+  numToMinusAng: 0
 --- !u!114 &218095391
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -844,6 +848,8 @@ MonoBehaviour:
   text: {fileID: 55300354}
   connectionText: {fileID: 217665200}
   whatsToOutput: 2
+  numToMinusWei: 0
+  numToMinusAng: 0
 --- !u!114 &218095392
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -862,6 +868,8 @@ MonoBehaviour:
   text: {fileID: 626872938}
   connectionText: {fileID: 1584504118}
   whatsToOutput: 1
+  numToMinusWei: 0
+  numToMinusAng: 0
 --- !u!1001 &331264285
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2783,9 +2791,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 218095385}
-        m_TargetAssemblyTypeName: BluetoothInterfacer, Assembly-CSharp
-        m_MethodName: TareLoadCell
+      - m_Target: {fileID: 218095384}
+        m_TargetAssemblyTypeName: OutputText, Assembly-CSharp
+        m_MethodName: tare
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

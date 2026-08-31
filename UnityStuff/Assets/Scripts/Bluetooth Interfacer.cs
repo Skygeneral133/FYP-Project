@@ -282,20 +282,7 @@ public class BluetoothInterfacer : MonoBehaviour
         try { return Encoding.UTF8.GetString(bytes); }
         catch { return BitConverter.ToString(bytes); }
     }
-
-    // ---------- Step 5: Write commands (RESET / TARE) ----------
-    // Mirrors resetIMU() / tareLoadCell() from the web reference: writes an
-    // ASCII command string to the write-only characteristic B.
-
-    public void ResetIMU()
-    {
-        SendCommand(imu, "RESET");
-    }
-
-    public void TareLoadCell()
-    {
-        SendCommand(loadCell, "TARE");
-    }
+    
 
     private void SendCommand(BleDeviceConfig device, string command)
     {
