@@ -2,47 +2,47 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 public class BluetoothInterfacer : MonoBehaviour
 {
     public static BluetoothInterfacer Instance { get; private set; }
 
-    // Generic config for one BLE peripheral with up to two characteristics we care about.
+    // Generic config for one BLE peripheral.
+    // characteristicAUUID = the single NOTIFY characteristic that streams
+    //   "value1,value2" as ASCII text (e.g. "45.20,12.50").
+    // characteristicBUUID = a WRITE-ONLY command characteristic (e.g. "RESET",
+    //   "TARE"). It is never subscribed to and never produces sensor data.
     [Serializable]
     public class BleDeviceConfig
     {
         public string deviceName;
         public string serviceUUID;
-        public string characteristicAUUID;
-        public string characteristicBUUID;
+        public string characteristicAUUID; // notify: "v1,v2"
+        public string characteristicBUUID; // write-only: command
 
         [NonSerialized] public string address;
         [NonSerialized] public bool addressFound;
         [NonSerialized] public bool isConnected;
         [NonSerialized] public bool subscribedA;
-        [NonSerialized] public bool subscribedB;
     }
 
     // ---- Load Cell ----
-    // NOTE: fill in your real characteristic UUIDs below. In the original script
-    // weightCharacteristicUUID and ratePourCharacteristicUUID were identical, which
-    // means they could never be told apart on the wire.
     private BleDeviceConfig loadCell = new BleDeviceConfig
     {
         deviceName = "LoadCellArduino",
         serviceUUID = "19b10000-e8f2-537e-4f6c-d104768a1214",
-        characteristicAUUID = "19b10001-e8f2-537e-4f6c-d104768a1214", // weight
-        characteristicBUUID = "19b10002-e8f2-537e-4f6c-d104768a1214", // pour rate  <-- CHANGE ME
+        characteristicAUUID = "19b10001-e8f2-537e-4f6c-d104768a1214", // weight,pouringRate
+        characteristicBUUID = "19b10002-e8f2-537e-4f6c-d104768a1214", // TARE command
     };
 
     // ---- IMU ----
-    // NOTE: this must be the IMU's *actual* advertised BLE name.
     private BleDeviceConfig imu = new BleDeviceConfig
     {
-        deviceName = "IMUArduino", // <-- CHANGE ME to the real advertised name
-        serviceUUID = "19b20000-e8f2-537e-4f6c-d104768a1214", // <-- CHANGE ME
-        characteristicAUUID = "19b20001-e8f2-537e-4f6c-d104768a1214", // pour angle <-- CHANGE ME
-        characteristicBUUID = "19b20002-e8f2-537e-4f6c-d104768a1214", // velocity   <-- CHANGE ME
+        deviceName = "IMUArduino",
+        serviceUUID = "19b10000-e8f2-537e-4f6c-d104768a1214",
+        characteristicAUUID = "19b10001-e8f2-537e-4f6c-d104768a1214", // angle,angularVelocity
+        characteristicBUUID = "19b10002-e8f2-537e-4f6c-d104768a1214", // RESET command
     };
 
     private List<BleDeviceConfig> devices;
@@ -101,7 +101,6 @@ public class BluetoothInterfacer : MonoBehaviour
         if (_isScanning) return;
         _isScanning = true;
 
-        // Scan ONCE for every service UUID we care about, in a single call.
         string[] serviceUUIDs = devices.Select(d => d.serviceUUID).Distinct().ToArray();
         BluetoothLEHardwareInterface.ScanForPeripheralsWithServices(serviceUUIDs, OnDeviceFound);
     }
@@ -122,8 +121,6 @@ public class BluetoothInterfacer : MonoBehaviour
 
         Debug.Log($"Matched '{deviceName}' -> address {address}");
 
-        // Once every device we're looking for has been found, stop scanning and
-        // start connecting them one at a time.
         if (devices.All(d => d.addressFound))
         {
             BluetoothLEHardwareInterface.StopScan();
@@ -133,8 +130,6 @@ public class BluetoothInterfacer : MonoBehaviour
     }
 
     // ---------- Step 3: Connect (one device at a time) ----------
-    // Connecting sequentially rather than in parallel avoids race conditions some
-    // Android BLE stacks have when two ConnectToPeripheral calls overlap.
 
     private void ConnectNextInQueue()
     {
@@ -172,16 +167,13 @@ public class BluetoothInterfacer : MonoBehaviour
 
         string c = characteristic.ToLower();
 
+        // Only subscribe to the data (A) characteristic. B is write-only —
+        // discovering it is enough; we don't subscribe to it, since the
+        // firmware never sends notifications on it.
         if (c == device.characteristicAUUID.ToLower())
         {
             BluetoothLEHardwareInterface.SubscribeCharacteristicWithDeviceAddress(
                 device.address, device.serviceUUID, device.characteristicAUUID,
-                OnSubscribed, OnDataReceived);
-        }
-        else if (c == device.characteristicBUUID.ToLower())
-        {
-            BluetoothLEHardwareInterface.SubscribeCharacteristicWithDeviceAddress(
-                device.address, device.serviceUUID, device.characteristicBUUID,
                 OnSubscribed, OnDataReceived);
         }
     }
@@ -192,13 +184,11 @@ public class BluetoothInterfacer : MonoBehaviour
 
         string c = characteristic.ToLower();
         if (c == device.characteristicAUUID.ToLower()) device.subscribedA = true;
-        else if (c == device.characteristicBUUID.ToLower()) device.subscribedB = true;
 
         Debug.Log($"Subscribed to {characteristic} on {device.deviceName}");
 
-        // Once both characteristics on this device are subscribed, move on to
-        // connecting the next queued device.
-        if (device.subscribedA && device.subscribedB)
+        // Only one characteristic to wait on now.
+        if (device.subscribedA)
         {
             ConnectNextInQueue();
         }
@@ -210,64 +200,106 @@ public class BluetoothInterfacer : MonoBehaviour
         {
             device.isConnected = false;
             device.subscribedA = false;
-            device.subscribedB = false;
             Debug.Log("Disconnected from " + device.deviceName);
         }
     }
 
     // ---------- Step 4: Parse incoming data ----------
+    // Firmware sends ASCII text "value1,value2" per notification, e.g.
+    // "45.20,12.50" (IMU: angle,angularVelocity) or "120.50,18.30"
+    // (load cell: weight,pouringRate) — matching the web reference implementation.
 
     private void OnDataReceived(string deviceAddress, string characteristicUUID, byte[] bytes)
     {
         if (!devicesByAddress.TryGetValue(deviceAddress, out var device)) return;
 
-        float value = ParseFloat(bytes);
-        if (float.IsNaN(value)) return;
-
         string c = characteristicUUID.ToLower();
+        if (c != device.characteristicAUUID.ToLower()) return; // ignore anything else
+
+        if (!TryParseCsvPair(bytes, out float value1, out float value2))
+        {
+            Debug.LogWarning($"Malformed data from {device.deviceName}: {BytesToDebugString(bytes)}");
+            return;
+        }
 
         if (device == loadCell)
         {
-            if (c == loadCell.characteristicAUUID.ToLower()) CurrentWeight = value;
-            else if (c == loadCell.characteristicBUUID.ToLower()) CurrentPourRate = value;
+            CurrentWeight = value1;
+            CurrentPourRate = value2;
         }
         else if (device == imu)
         {
-            if (c == imu.characteristicAUUID.ToLower()) CurrentPourAngle = value;
-            else if (c == imu.characteristicBUUID.ToLower()) CurrentVelocity = value;
+            CurrentPourAngle = value1;
+            CurrentVelocity = value2;
         }
     }
 
-    private float ParseFloat(byte[] bytes)
+    private bool TryParseCsvPair(byte[] bytes, out float value1, out float value2)
     {
-        if (bytes == null || bytes.Length < 4)
-        {
-            Debug.LogWarning("Received malformed data (expected at least 4 bytes).");
-            return float.NaN;
-        }
+        value1 = float.NaN;
+        value2 = float.NaN;
 
-        // Assumes the Arduino sends a raw 4-byte float (most common for BLE sensor
-        // firmware). If your firmware instead sends an ASCII string like "123.45",
-        // comment this block out and uncomment the text-parsing block below.
+        if (bytes == null || bytes.Length == 0) return false;
+
+        string raw;
         try
         {
-            byte[] data = bytes;
-            if (!BitConverter.IsLittleEndian)
-            {
-                data = (byte[])bytes.Clone();
-                Array.Reverse(data, 0, 4);
-            }
-            return BitConverter.ToSingle(data, 0);
+            raw = Encoding.UTF8.GetString(bytes).Trim();
         }
         catch (Exception e)
         {
-            Debug.LogWarning("Failed to parse float bytes: " + e.Message);
-            return float.NaN;
+            Debug.LogWarning("Failed to decode BLE text data: " + e.Message);
+            return false;
         }
 
-        // --- Alternative: text-based parsing ---
-        // string s = System.Text.Encoding.UTF8.GetString(bytes);
-        // return float.TryParse(s, out float v) ? v : float.NaN;
+        string[] parts = raw.Split(',');
+        if (parts.Length != 2) return false;
+
+        bool ok1 = float.TryParse(parts[0], out value1);
+        bool ok2 = float.TryParse(parts[1], out value2);
+
+        return ok1 && ok2 && !float.IsNaN(value1) && !float.IsNaN(value2);
+    }
+
+    private string BytesToDebugString(byte[] bytes)
+    {
+        if (bytes == null) return "<null>";
+        try { return Encoding.UTF8.GetString(bytes); }
+        catch { return BitConverter.ToString(bytes); }
+    }
+
+    // ---------- Step 5: Write commands (RESET / TARE) ----------
+    // Mirrors resetIMU() / tareLoadCell() from the web reference: writes an
+    // ASCII command string to the write-only characteristic B.
+
+    public void ResetIMU()
+    {
+        SendCommand(imu, "RESET");
+    }
+
+    public void TareLoadCell()
+    {
+        SendCommand(loadCell, "TARE");
+    }
+
+    private void SendCommand(BleDeviceConfig device, string command)
+    {
+        if (!device.isConnected)
+        {
+            Debug.LogWarning($"Cannot send '{command}' — {device.deviceName} is not connected.");
+            return;
+        }
+
+        byte[] payload = Encoding.UTF8.GetBytes(command);
+
+        BluetoothLEHardwareInterface.WriteCharacteristic(
+            device.address,
+            device.serviceUUID,
+            device.characteristicBUUID,
+            payload,
+            payload.Length,
+            false, // withoutResponse — set true/false to match your firmware's expectations
+            (characteristic) => Debug.Log($"Sent '{command}' to {device.deviceName}"));
     }
 
     // ---------- Cleanup ----------
@@ -320,7 +352,7 @@ public class BluetoothInterfacer : MonoBehaviour
         imu.addressFound = false;
         StartScanning();
     }
-    
+
     public void ToggleConnection()
     {
         bool anyConnected = loadCell.isConnected || imu.isConnected;
