@@ -4,73 +4,45 @@ namespace DefaultNamespace
 {
     public class WaterController : MonoBehaviour
     {
-        [Header("Liquid Prefab (assign whichever one this beaker starts with, or leave empty)")]
-        public GameObject LiquidPrefab;
+        [Header("Starting Liquid")]
+        [SerializeField] private GameObject liquidPrefab;
 
-        [Header("Weight Tracking")]
-        public float givenVolume = 90;
-        private float _hundredMil = 0.03f;
-        public BluetoothInterfacer BluetoothInterface;
+        private GameObject liquidInstance;
 
-        private Transform _liquidInstance;
-
-        void Start()
+        private void Start()
         {
-            BluetoothInterface = BluetoothInterfacer.Instance;
-
-            if (LiquidPrefab != null)
+            if (liquidPrefab != null)
             {
-                SpawnLiquid(LiquidPrefab);
+                SpawnLiquid(liquidPrefab);
             }
         }
 
-        void Update()
+        public void SpawnLiquid(GameObject newLiquidPrefab)
         {
-            if (_liquidInstance == null) return; // nothing spawned yet, nothing to scale
-
-            givenVolume = BluetoothInterface.CurrentWeight;
-            if (givenVolume > 0)
+            if (newLiquidPrefab == null)
             {
-                float actualScale = givenVolume * _hundredMil / 100;
+                Debug.LogWarning(
+                    "SpawnLiquid received a null prefab."
+                );
 
-                Vector3 currentScale = _liquidInstance.localScale;
-                currentScale.y = actualScale;
-                _liquidInstance.localScale = currentScale;
-
-                Vector3 pos = _liquidInstance.localPosition;
-                pos.y = actualScale * 1f; // 1f = default cylinder mesh half-height
-                _liquidInstance.localPosition = pos;
-            }
-        }
-
-        /// <summary>
-        /// Spawns (or replaces) the liquid inside this beaker.
-        /// Call this from ButtonsScript when the user picks water / boiling water / acid.
-        /// </summary>
-        public void SpawnLiquid(GameObject liquidPrefab)
-        {
-            if (liquidPrefab == null)
-            {
-                Debug.LogWarning("SpawnLiquid called with a null prefab.");
                 return;
             }
 
-            // Remove any existing liquid first
-            if (_liquidInstance != null)
+            if (liquidInstance != null)
             {
-                Destroy(_liquidInstance.gameObject);
-                _liquidInstance = null;
+                Destroy(liquidInstance);
             }
 
-            GameObject instance = Instantiate(liquidPrefab, transform);
-            instance.transform.localPosition = Vector3.zero;
-            instance.transform.localRotation = Quaternion.identity;
+            liquidInstance = Instantiate(
+                newLiquidPrefab,
+                transform
+            );
 
-            Vector3 startScale = instance.transform.localScale;
-            startScale.y = 0f; // start empty, Update() will grow it
-            instance.transform.localScale = startScale;
+            liquidInstance.transform.localPosition =
+                Vector3.zero;
 
-            _liquidInstance = instance.transform;
+            liquidInstance.transform.localRotation =
+                Quaternion.identity;
         }
     }
 }
