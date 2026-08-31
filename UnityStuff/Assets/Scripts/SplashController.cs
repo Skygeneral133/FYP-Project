@@ -87,6 +87,11 @@ public class SplashController : MonoBehaviour
             );
         }
     }
+    
+    private void LateUpdate()
+    {
+        UpdateSplashPosition();
+    }
 
     private void ResolveBluetoothInterface()
     {
@@ -216,24 +221,22 @@ public class SplashController : MonoBehaviour
 
     private void UpdateSplashPosition()
     {
-        if (splashOrigin == null || waterBody == null)
+        if (waterBody == null)
         {
             return;
         }
 
-        Vector3 position = splashOrigin.localPosition;
+        Vector3 surfaceWorldPosition =
+            waterBody.TransformPoint(Vector3.up);
 
-        // A Unity cylinder's top is one local Y scale above its centre.
-        position.y =
-            waterBody.localPosition.y + waterBody.localScale.y;
-
-        splashOrigin.localPosition = position;
+        if (splashOrigin != null)
+        {
+            splashOrigin.position = surfaceWorldPosition;
+        }
 
         if (overflowSplashOrigin != null)
         {
-            Vector3 overflowPosition = overflowSplashOrigin.localPosition;
-            overflowPosition.y = position.y;
-            overflowSplashOrigin.localPosition = overflowPosition;
+            overflowSplashOrigin.position = surfaceWorldPosition;
         }
     }
 
