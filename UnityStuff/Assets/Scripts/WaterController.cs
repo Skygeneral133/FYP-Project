@@ -4,44 +4,66 @@ namespace DefaultNamespace
 {
     public class WaterController : MonoBehaviour
     {
-        [Header("Starting Liquid")]
-        [SerializeField] private GameObject liquidPrefab;
+        [Header("Beaker Prefabs")]
+        [SerializeField] private GameObject normalBeakerPrefab;
+        [SerializeField] private GameObject boilingBeakerPrefab;
+        [SerializeField] private GameObject acidBeakerPrefab;
 
-        private GameObject liquidInstance;
+        [Header("Starting Beaker")]
+        [SerializeField] private bool spawnNormalOnStart = true;
+
+        private GameObject currentBeaker;
 
         private void Start()
         {
-            if (liquidPrefab != null)
+            if (spawnNormalOnStart)
             {
-                SpawnLiquid(liquidPrefab);
+                SelectNormalWater();
             }
         }
 
-        public void SpawnLiquid(GameObject newLiquidPrefab)
+        public void SelectBoilingWater()
         {
-            if (newLiquidPrefab == null)
+            SpawnLiquid(boilingBeakerPrefab);
+        }
+
+        public void SelectNormalWater()
+        {
+            SpawnLiquid(normalBeakerPrefab);
+        }
+
+        public void SelectAcid()
+        {
+            SpawnLiquid(acidBeakerPrefab);
+        }
+
+        public void SpawnLiquid(GameObject selectedPrefab)
+        {
+            if (selectedPrefab == null)
             {
                 Debug.LogWarning(
-                    "SpawnLiquid received a null prefab."
+                    "The selected prefab is not assigned."
                 );
 
                 return;
             }
 
-            if (liquidInstance != null)
+            if (currentBeaker != null)
             {
-                Destroy(liquidInstance);
+                currentBeaker.SetActive(false);
+                Destroy(currentBeaker);
             }
 
-            liquidInstance = Instantiate(
-                newLiquidPrefab,
-                transform
+            currentBeaker = Instantiate(
+                selectedPrefab,
+                transform,
+                false
             );
 
-            liquidInstance.transform.localPosition =
+            currentBeaker.transform.localPosition =
                 Vector3.zero;
 
-            liquidInstance.transform.localRotation =
+            currentBeaker.transform.localRotation =
                 Quaternion.identity;
         }
     }
