@@ -187,13 +187,17 @@ public class BluetoothInterfacer : MonoBehaviour
 
         Debug.Log($"Subscribed to {characteristic} on {device.deviceName}");
 
-        // Only one characteristic to wait on now.
         if (device.subscribedA)
         {
-            ConnectNextInQueue();
+            StartCoroutine(ConnectNextInQueueDelayed(0.75f));
         }
     }
 
+    private System.Collections.IEnumerator ConnectNextInQueueDelayed(float delaySeconds)
+    {
+        yield return new WaitForSeconds(delaySeconds);
+        ConnectNextInQueue();
+    }
     private void OnDisconnected(string address)
     {
         if (devicesByAddress.TryGetValue(address, out var device))
@@ -208,13 +212,22 @@ public class BluetoothInterfacer : MonoBehaviour
     // Firmware sends ASCII text "value1,value2" per notification, e.g.
     // "45.20,12.50" (IMU: angle,angularVelocity) or "120.50,18.30"
     // (load cell: weight,pouringRate) — matching the web reference implementation.
-
     private void OnDataReceived(string deviceAddress, string characteristicUUID, byte[] bytes)
     {
-        if (!devicesByAddress.TryGetValue(deviceAddress, out var device)) return;
+        Debug.Log($"[RAW] len={(bytes?.Length ?? -1)} text=\"{(bytes != null ? System.Text.Encoding.UTF8.GetString(bytes) : "null")}\"");
+
+        if (!devicesByAddress.TryGetValue(deviceAddress, out var device))
+        {
+            Debug.LogWarning($"[LOOKUP FAIL] No device registered for address {deviceAddress}. Known addresses: {string.Join(", ", devicesByAddress.Keys)}");
+            return;
+        }
 
         string c = characteristicUUID.ToLower();
-        if (c != device.characteristicAUUID.ToLower()) return; // ignore anything else
+        if (c != device.characteristicAUUID.ToLower())
+        {
+            Debug.LogWarning($"[UUID MISMATCH] Got {c}, expected {device.characteristicAUUID.ToLower()} for {device.deviceName}");
+            return;
+        }
 
         if (!TryParseCsvPair(bytes, out float value1, out float value2))
         {
@@ -226,11 +239,13 @@ public class BluetoothInterfacer : MonoBehaviour
         {
             CurrentWeight = value1;
             CurrentPourRate = value2;
+            Debug.Log($"[OK] LoadCell -> weight={CurrentWeight} rate={CurrentPourRate}");
         }
         else if (device == imu)
         {
             CurrentPourAngle = value1;
             CurrentVelocity = value2;
+            Debug.Log($"[OK] IMU -> angle={CurrentPourAngle} vel={CurrentVelocity}");
         }
     }
 
