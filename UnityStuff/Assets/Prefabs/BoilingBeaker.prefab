@@ -56,8 +56,89 @@ PrefabInstance:
       propertyPath: m_Name
       value: BoilingBeaker
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 598284076621654648, guid: d77e6c1f886d54a6789afe1a6f79a8c1, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3019819651153964318, guid: d77e6c1f886d54a6789afe1a6f79a8c1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8069634510169260443}
   m_SourcePrefab: {fileID: 100100000, guid: d77e6c1f886d54a6789afe1a6f79a8c1, type: 3}
+--- !u!4 &30534574842871484 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6729541583228817225, guid: d77e6c1f886d54a6789afe1a6f79a8c1, type: 3}
+  m_PrefabInstance: {fileID: 6703706326665703925}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2390231066287600219 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8945159445401191342, guid: d77e6c1f886d54a6789afe1a6f79a8c1, type: 3}
+  m_PrefabInstance: {fileID: 6703706326665703925}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2608485754630035507 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8735693119675263430, guid: d77e6c1f886d54a6789afe1a6f79a8c1, type: 3}
+  m_PrefabInstance: {fileID: 6703706326665703925}
+  m_PrefabAsset: {fileID: 0}
+--- !u!198 &3174489906151154406 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 8144290035072586515, guid: d77e6c1f886d54a6789afe1a6f79a8c1, type: 3}
+  m_PrefabInstance: {fileID: 6703706326665703925}
+  m_PrefabAsset: {fileID: 0}
+--- !u!198 &3906945121384633457 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 7723700306262959492, guid: d77e6c1f886d54a6789afe1a6f79a8c1, type: 3}
+  m_PrefabInstance: {fileID: 6703706326665703925}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5287974098712242312 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1471253278779447677, guid: d77e6c1f886d54a6789afe1a6f79a8c1, type: 3}
+  m_PrefabInstance: {fileID: 6703706326665703925}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b02c87a23529455c881e0b25a52536c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WaterBodyController
+--- !u!1 &8421965069657840875 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3019819651153964318, guid: d77e6c1f886d54a6789afe1a6f79a8c1, type: 3}
+  m_PrefabInstance: {fileID: 6703706326665703925}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8069634510169260443
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8421965069657840875}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ed00432837e4d24aa891ac2ff33af87, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SplashController
+  waterController: {fileID: 5287974098712242312}
+  splashParticles: {fileID: 3906945121384633457}
+  overflowSplashParticles: {fileID: 3174489906151154406}
+  splashOrigin: {fileID: 2390231066287600219}
+  overflowSplashOrigin: {fileID: 30534574842871484}
+  waterBody: {fileID: 2608485754630035507}
+  bluetoothInterface: {fileID: 0}
+  tareWeightGrams: 0
+  liquidDensityGramsPerMl: 1
+  useArduinoPourRate: 1
+  minimumSmallIncreaseMl: 0.5
+  smallSplashThresholdMlPerSecond: 3
+  smallSplashCooldown: 0.15
+  smallSplashFullIntensityIncreaseMl: 5
+  minimumSmallParticleCount: 3
+  maximumSmallParticleCount: 15
+  overflowFillThreshold: 0.9
+  minimumSuddenIncreaseMl: 10
+  splashThresholdMlPerSecond: 40
+  splashResetRateMlPerSecond: 10
+  splashCooldown: 0.5
+  overflowParticleCount: 50
+  useTestWeight: 0
+  testWeightGrams: 0
