@@ -5006,7 +5006,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WaterBodyController
   waterBody: {fileID: 8735693119675263430}
-  currentVolumeMl: 0
+  currentVolumeMl: 100
   maximumVolumeMl: 100
   bottomY: 0
   fullWaterHeight: 0.067
@@ -5919,7 +5919,7 @@ ParticleSystem:
     sphericalDirectionAmount: 0
     randomPositionAmount: 0
     radius:
-      value: 0.025
+      value: 0.03
       mode: 0
       spread: 0
       speed:
@@ -10022,7 +10022,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &8735693119675263430
 Transform:
   m_ObjectHideFlags: 0
@@ -10032,8 +10032,8 @@ Transform:
   m_GameObject: {fileID: 8639846011011974580}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.019932501, z: 0}
-  m_LocalScale: {x: 0.048, y: 0.019932501, z: 0.048}
+  m_LocalPosition: {x: 0, y: 0.0335, z: 0}
+  m_LocalScale: {x: 0.048, y: 0.0335, z: 0.048}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1094441722215186275}
